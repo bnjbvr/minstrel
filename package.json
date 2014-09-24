@@ -1,0 +1,37 @@
+{
+  "name": "minstrel",
+  "description": "A Firefox OS app for Spotify and its self-hosted backend.",
+  "author": "Benjamin Bouvier <public@benj.me>",
+  "keywords": [
+    "spotify",
+    "firefox os",
+    "ffos",
+    "ffox",
+    "play",
+    "player",
+    "music"
+  ],
+  "version": "0.0.1",
+  "maintainers": [
+    {
+      "name": "Benjamin Bouvier",
+      "email": "public@benj.me"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bnjbvr/minstrel"
+  },
+  "engines": {
+    "node": ">0.10.0"
+  },
+  "dependencies": {
+    "libspotify": "*",
+    "express": "*"
+  },
+  "devDependencies": {
+  },
+  "scripts": {
+  },
+  "main": "server.js"
+}
