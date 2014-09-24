@@ -94,21 +94,14 @@ var cb = function(req, res) {
 var waitReady = setInterval(function() {
     if (!ready)
         return;
+
     console.log('ready');
     clearInterval(waitReady);
+    var server = http.createServer(app).listen(1337);
 }, 100);
 
 app.get('/track/:sid', cb);
-
-app.get('/', function(req, res) {
-    if (!ready) {
-        res.end('not logged yet');
-        return;
-    }
-    res.end("<html><body><audio controls autoplay src='/track/6JEK0CvvjDjjMUBFoXShNZ' type='audio/ogg; codecs=\"vorbis\"'></audio></body></html>");
-});
-
-var server = http.createServer(app).listen(1337);
+app.use("/", express.static(__dirname + '/pub'));
 
 process.on('uncaughtException', function(err) {
     console.log("Uncaught exception!", err, err.stack);
