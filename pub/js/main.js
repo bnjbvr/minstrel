@@ -11,7 +11,7 @@ function onClickPlaylist(id) {
         var html = '';
         for (var i = 0; i < data.num; i++) {
             var t = data.tracks[i];
-            html += '<li><a href="#" onclick="changeTrack(\'' + t.sid + '\')">' +
+            html += '<li><a href="#" onclick="changeTrack(\'' + t.sid + '\'); return false">' +
                 t.artist + ' - ' + t.name + '</a></li>';
         }
         $tracks.html(html);
@@ -23,7 +23,7 @@ $.get('/playlists', function(data) {
     var html = '';
     for (var i = 0; i < data.pls.length; i++) {
         var pl = data.pls[i];
-        html += '<li><a href="#" onclick="onClickPlaylist(\'' + pl.sid + '\')">' + pl.name + '</a></li>'
+        html += '<li><a href="#" onclick="onClickPlaylist(\'' + pl.sid + '\'); return false;">' + pl.name + '</a></li>'
     }
     $playlists.html(html);
 });
