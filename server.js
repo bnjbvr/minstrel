@@ -26,10 +26,9 @@ session.once('login', function(err) {
     ready = true;
 });
 
-var cb = function(req, res) {
-    // Always choose your tracks wisely.
+var playTrack = function(req, res) {
     var track = sp.Track.getFromUrl('spotify:track:' + req.params.sid);
-    track.on('ready', function() {
+    function next() {
 
         var requestAborted = false;
 
@@ -88,19 +87,82 @@ var cb = function(req, res) {
         res.writeHead(200, {
             'Content-Type': 'audio/ogg'
         });
+    };
+
+    if (track.isReady())
+        next();
+    else
+        track.on('ready', next);
+}
+
+var mapPlaylists = {};
+
+function getPlaylists(req, res) {
+    var container = session.getPlaylistcontainer();
+    var ret = {};
+    container.getPlaylists(function(pls) {
+        ret.num = pls.length;
+        ret.pls = [];
+        for (var i = 0; i < pls.length; i++) {
+            var sid = pls[i].getUrl().split(':')[4];
+            ret.pls.push({
+                name: pls[i].name,
+                numSubscribers: pls[i].numSubscribers,
+                sid: sid
+            });
+            mapPlaylists[sid] = pls[i];
+        }
+        res.json(ret);
     });
+}
+
+function getPlaylistTracks(req, res) {
+
+    function next(playlist) {
+        playlist.getTracks(function(tracks) {
+            var ret = {};
+            ret.num = tracks.length;
+            ret.tracks = [];
+            for (var i = 0; i < ret.num; i++) {
+                var t = tracks[i];
+                ret.tracks.push({
+                    duration: t.duration,
+                    humanDuration: t.humanDuration,
+                    name: t.name,
+                    artist: t.artist.name,
+                    available: t.isAvailable(),
+                    sid: t.getUrl().split(':')[2]
+                });
+            }
+            res.json(ret);
+        });
+    }
+
+    var pl = sp.Playlist.getFromUrl('spotify:user:' + req.params.user + ':playlist:' + req.params.sid);
+
+    if (pl.isReady()) {
+        next(pl);
+    } else {
+        pl.on('ready', function() {
+            next(pl);
+        });
+    }
 }
 
 var waitReady = setInterval(function() {
     if (!ready)
         return;
 
+    // Initializes the http server only once the session is ready
     console.log('ready');
     clearInterval(waitReady);
     var server = http.createServer(app).listen(1337);
 }, 100);
 
-app.get('/track/:sid', cb);
+app.get('/track/:sid', playTrack);
+app.get('/playlists', getPlaylists);
+app.get('/playlists/:user/:sid', getPlaylistTracks);
+
 app.use("/", express.static(__dirname + '/pub'));
 
 process.on('uncaughtException', function(err) {
