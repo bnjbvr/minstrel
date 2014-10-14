@@ -95,8 +95,6 @@ var playTrack = function(req, res) {
         track.on('ready', next);
 }
 
-var mapPlaylists = {};
-
 function getPlaylists(req, res) {
     var container = session.getPlaylistcontainer();
     var ret = {};
@@ -104,13 +102,18 @@ function getPlaylists(req, res) {
         ret.num = pls.length;
         ret.pls = [];
         for (var i = 0; i < pls.length; i++) {
-            var sid = pls[i].getUrl().split(':')[4];
+            // spotify:user:$username:playlist:$playlistId
+            var split = pls[i].getUrl().split(':');
+
+            var username = split[2];
+            var playlistId = split[4];
+
             ret.pls.push({
                 name: pls[i].name,
                 numSubscribers: pls[i].numSubscribers,
-                sid: sid
+                playlistId: playlistId,
+                username: username
             });
-            mapPlaylists[sid] = pls[i];
         }
         res.json(ret);
     });
