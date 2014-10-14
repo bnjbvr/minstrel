@@ -59,3 +59,48 @@ function changeTrack(sid) {
 
 changeTrack(RickRoll);
 
+/*
+var Creme = '7cksT9fBZRkoaUUWs8kVUQ';
+var SyncState = {};
+
+localforage.keys(function (err, keys) {
+    for (var i = 0; i < keys.length; i++)
+        SyncState[keys[i]] = true;
+
+    // XXX
+    syncPlay(Creme);
+});
+
+function syncLocally(sid) {
+
+    var request = new XMLHttpRequest();
+    request.open('GET', '/track/' + sid, true);
+    request.responseType = 'arraybuffer';
+    request.addEventListener('readystatechange', function() {
+        if (request.readyState === 4) { // readyState DONE
+            alert('done');
+            localforage.setItem(sid, request.response);
+            SyncState[sid] = true;
+        }
+    });
+    request.send(null);
+}
+
+function syncPlay(sid) {
+    if (SyncState[sid] !== true) {
+        alert(sid + ' not found in local forage');
+        return;
+    }
+
+    localforage.getItem(sid, function(err, data) {
+        var blob = new Blob([data]);
+        var uri = window.URL.createObjectURL(blob);
+
+        player.pause();
+        player.src = uri;
+        player.play();
+    });
+}
+
+//syncLocally(Creme);
+*/
