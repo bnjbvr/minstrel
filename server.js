@@ -21,8 +21,6 @@ session.login(cred.login, cred.password);
 var app = new express();
 var ready = false;
 
-var playing = false;
-
 session.once('login', function(err) {
     if (err) {
         this.emit('error', err);
@@ -32,72 +30,83 @@ session.once('login', function(err) {
 });
 
 var playTrack = function(req, res) {
+
+    function ffmpeg() {
+        return spawn('avconv',
+                     ['-f', 's16le', '-ac', 2, '-ar', '44100', '-i', 'pipe:0',
+                      '-f', 'ogg', '-codec:a', 'libvorbis', 'pipe:1']);
+    }
+
     var track = sp.Track.getFromUrl('spotify:track:' + req.params.sid);
+
     function next() {
-
-        var requestAborted = false;
-
-        // Set up Spotify player
-        player = session.getPlayer();
-        player.once('track-end', function() {
-            console.log('track ended');
-            smoothExit();
-        });
-        player.on('data', function(data) {
-            if (requestAborted) {
-                return;
-            }
-            //console.log('passing data to ffmpeg', data.length);
-            ffmpeg.stdin.write(data);
-        });
 
         // TODO my guess is that this could be made way simpler with streams,
         // but this was too much error prone.
+        //
+        var requestAborted = false;
 
-        // Set up FFMPEG
-        var ffmpeg = spawn('avconv', ['-f', 's16le', '-ac', 2, '-ar', '44100', '-i', 'pipe:0', '-f', 'ogg', '-codec:a', 'libvorbis', 'pipe:1']);
-        ffmpeg.stdout.on('data', function(data) {
-            if (requestAborted) {
-                return;
-            }
-            //console.log('ffmpeg-stdout: chunk received of size ', data.length);
-            res.write(data);
-        });
-        ffmpeg.stderr.on('data', function(data) {
-            console.log('ffmpeg-stderr: ' + data);
-        });
-        ffmpeg.on('close', function(code) {
-            console.log('ffmpeg closed with code ', code);
-            smoothExit();
-        });
+        // Set up Spotify player
+        var player = session.getPlayer();
 
-        function smoothExit() {
-            if (!resClosed) {
-                resClosed = true;
-                player.stop();
-                ffmpeg.kill();
-            }
+        function playercb(data) {
+            F.stdin.write(data);
         }
 
-        // Set up request
-        var resClosed = false;
-        res.on('close', function() {
-            requestAborted = true;
-            smoothExit();
+        player.on('data', playercb);
+
+        player.once('track-end', function() {
+            console.log('track ended');
+
+            // Remove elements in their reverse order in the stream
+            player.removeListener('data', playercb);
+            F.stdin.end();
         });
 
+        // Set up FFMPEG
+        var F = ffmpeg();
+
+        F.stdout.on('data', function(data) {
+            res.write(data);
+        });
+
+        F.stderr.on('data', function(data) {
+            console.log('ffmpeg-stderr: ' + data);
+        });
+
+        F.on('close', function(code) {
+            console.log('ffmpeg closed with code ', code);
+            if (!requestAborted) {
+                res.end();
+            }
+        });
+
+        // Set up request
+        res.on('close', function() {
+            console.log('request aborted');
+            requestAborted = true;
+
+            // Remove elements in their reverse order in the stream
+            player.removeListener('data', playercb);
+            F.stdin.end();
+
+            player.stop();
+        });
+
+        console.log('playing track');
         player.load(track);
         player.play();
-        console.log('playing track');
+
         res.writeHead(200, {
             'Content-Type': 'audio/ogg'
         });
     };
 
-    if (track.isReady())
+    if (track.isReady()) {
         next();
-    else
+    } else {
         track.on('ready', next);
+    }
 }
 
 function getPlaylists(req, res) {
