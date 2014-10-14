@@ -1,17 +1,22 @@
+// Imports
 var sp = require('libspotify');
 
 var fs = require('fs');
 var spawn = require('child_process').spawn;
 
+var express = require('express');
+var http = require('http');
+
+// Constants
+var PORT = process.env.PORT || 1337;
+
+// THE CODE
 var session = new sp.Session({
     applicationKey: __dirname + '/private/spotify_appkey.key'
 });
 
 var cred = require('./private/passwd');
 session.login(cred.login, cred.password);
-
-var express = require('express');
-var http = require('http');
 
 var app = new express();
 var ready = false;
@@ -159,7 +164,7 @@ var waitReady = setInterval(function() {
     // Initializes the http server only once the session is ready
     console.log('ready');
     clearInterval(waitReady);
-    var server = http.createServer(app).listen(1337);
+    var server = http.createServer(app).listen(PORT);
 }, 100);
 
 app.get('/track/:sid', playTrack);
