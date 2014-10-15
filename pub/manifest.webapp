@@ -1,0 +1,17 @@
+{
+  "name": "Minstrel",
+  "description": "unofficial client for Spotify",
+  "type": "privileged",
+  "version": "0.1",
+  "launch_path": "/index.html",
+  "developer": {
+    "name": "Benjamin",
+    "url": "https://github.com/bnjbvr/minstrel"
+  },
+  "permissions": {
+    "systemXHR": {
+      "description": "Required to load remote content"
+    }
+  },
+  "default_locale": "en-US"
+}

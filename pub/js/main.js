@@ -6,6 +6,8 @@ var AlanBraxe = '4ao36tgMZ2rYHF9w1i9H04';
 var Disclosure = '1snNAXmmPXCn0dkF9DaPWw';
 var Creme = '7cksT9fBZRkoaUUWs8kVUQ';
 
+var SERVER = 'http://server.example.com:1337';
+
 var SyncState = {};
 var currentPlaylist = null;
 var playlistSidToIndex = null;
@@ -20,7 +22,7 @@ function init() {
 
     if (IsNavigatorOnline()) {
         console.log('loading playlists from the server');
-        $.get('/playlists', function(data) {
+        $.get(SERVER + '/playlists', function(data) {
             ShowPlaylists(data.pls);
             localforage.setItem('playlists', data.pls);
             SyncState['playlists'] = true;
@@ -35,6 +37,7 @@ function init() {
     }
 }
 
+$(document).foundation();
 localforage.keys(function (err, keys) {
     for (var i = 0; i < keys.length; i++) {
         SyncState[keys[i]] = true;
@@ -47,10 +50,20 @@ function ShowPlaylist(tracks) {
     var html = '';
     for (var i = 0; i < tracks.length; i++) {
         var t = tracks[i];
-        html += '<li><a href="#" onclick="changeTrack(\'' + t.sid + '\'); return false">' +
-            t.artist + ' - ' + t.name + '</a></li>';
+        html += '<li><a id="track-' + t.sid + '" href="#">' + t.artist + ' - ' + t.name + '</a></li>';
     }
     $tracks.html(html);
+
+    // Bind click handlers
+    for (var i = 0; i < tracks.length; i++) {
+        var t = tracks[i];
+        (function(sid) {
+            $('#track-' + sid).click(function() {
+                changeTrack(sid);
+                return false;
+            });
+        })(t.sid);
+    }
 }
 
 function OnLoadedPlaylist(tracks) {
@@ -72,7 +85,7 @@ function onClickPlaylist(username, id) {
     }
 
     if (IsNavigatorOnline()) {
-        $.get('/playlists/' + username + '/' + id, function(data) {
+        $.get(SERVER + '/playlists/' + username + '/' + id, function(data) {
             OnLoadedPlaylist(data.tracks);
             localforage.setItem(key(), data.tracks);
             SyncState[key()] = true;
@@ -92,11 +105,26 @@ function ShowPlaylists(playlists) {
     var html = '';
     for (var i = 0; i < playlists.length; i++) {
         var pl = playlists[i];
-        html += '<li><a href="#" onclick="onClickPlaylist(\'' + pl.username + '\', \'' + pl.playlistId +
-                    '\'); return false;">' + pl.name + '</a> ' +
-                '<a href="#" onclick="onClickSyncPlaylist(\'' + pl.playlistId + '\'); return false;">(sync)</a></li>'
+        html += '<li><a id="playlist-' + pl.playlistId + '" href="#">' + pl.name + '</a> ' +
+                '<a id="playlist-sync-' + pl.playlistId + '" href="#">(sync)</a></li>'
     }
     $playlists.html(html);
+
+    // Bind click handlers
+    for (var i = 0; i < playlists.length; i++) {
+        var pl = playlists[i];
+
+        (function(username, pid) {
+            $('#playlist-' + pid).click(function() {
+                onClickPlaylist(username, pid);
+                return false;
+            });
+            $('#playlist-sync-' + pid).click(function() {
+                onClickSyncPlaylist(pid);
+                return false;
+            });
+        })(pl.username, pl.playlistId);
+    }
 }
 
 function changeTrack(sid) {
@@ -108,7 +136,7 @@ function changeTrack(sid) {
     if (IsNavigatorOnline()) {
         console.log('loading track from the server');
         player.pause();
-        player.src = '/track/' + sid;
+        player.src = SERVER + '/track/' + sid;
         player.play();
     } else if (SyncState[key()] === true) {
         console.log('loading track from the cache');
@@ -180,7 +208,7 @@ function syncLocally(sid, cb) {
     }
 
     var xhr = new XMLHttpRequest();
-    xhr.open('GET', '/track/' + sid, true);
+    xhr.open('GET', SERVER + '/track/' + sid, true);
     xhr.responseType = 'arraybuffer';
     xhr.addEventListener('readystatechange', function() {
         if (xhr.readyState === 4) { // readyState DONE
