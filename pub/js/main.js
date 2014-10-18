@@ -245,6 +245,7 @@ function syncLocally(sid, cb) {
             if (xhr.response === null || xhr.status !== 200) {
                 console.error('track ' + sid + ' not synced: status == ' + xhr.status);
                 cb('XHR error: ' + xhr.status + '\nResponse: ' + xhr.response);
+                return;
             }
 
             localforage.setItem(key, xhr.response, function(err) {
@@ -253,9 +254,16 @@ function syncLocally(sid, cb) {
                     return;
                 }
                 console.log('track ' + key + ' synced');
+                SyncState[key] = true;
+                localforage.keys(function (err, keys) {
+                    console.log('sanity check:');
+                    keys.map(function(k) {
+                        console.log('synced in cache: ' + k);
+                        console.log('syncstate: ' + SyncState[k]);
+                    });
+                });
+                cb(null);
             });
-            SyncState[key] = true;
-            cb(null);
         }
     });
     xhr.send(null);
