@@ -177,6 +177,11 @@ var waitReady = setInterval(function() {
     var server = http.createServer(app).listen(PORT);
 }, 100);
 
+app.use(function(req, res, next) {
+    res.header('Access-Control-Allow-Origin', '*');
+    next();
+});
+
 app.get('/track/:sid', playTrack);
 app.get('/playlists', getPlaylists);
 app.get('/playlists/:user/:sid', getPlaylistTracks);
