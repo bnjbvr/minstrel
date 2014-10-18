@@ -51,6 +51,9 @@ function init() {
     }
 }
 
+document.addEventListener('online', init);
+document.addEventListener('offline', init);
+
 $(document).foundation();
 localforage.keys(function (err, keys) {
     keys.map(function(k) { SyncState[k] = true; });
