@@ -123,8 +123,10 @@ $playlists = $('#playlists');
 function ShowPlaylists(playlists) {
     var html = '';
     playlists.map(function(pl) {
-        html += '<li><a id="playlist-' + pl.playlistId + '" href="#">' + pl.name + '</a> ' +
-                '<a id="playlist-sync-' + pl.playlistId + '" href="#">(sync)</a></li>'
+        html += '<li><a id="playlist-' + pl.playlistId + '" href="#">' + pl.name + '</a>';
+        if (IsNavigatorOnline()) {
+            html += ' <a id="playlist-sync-' + pl.playlistId + '" href="#">(sync)</a></li>'
+        }
     });
     $playlists.html(html);
 
@@ -203,7 +205,7 @@ function onClickSyncPlaylist(playlistId) {
         syncLocally(sid, function(err) {
             if (err) {
                 alert('track not synced: ' + err)
-                return
+                return;
             }
             doNext(tracks);
         });
