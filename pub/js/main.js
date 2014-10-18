@@ -50,31 +50,27 @@ function init() {
 
 $(document).foundation();
 localforage.keys(function (err, keys) {
-    for (var i = 0; i < keys.length; i++) {
-        SyncState[keys[i]] = true;
-    }
+    keys.map(function(k) { SyncState[k] = true; });
     init();
 });
 
 $tracks = $('#tracks');
 function ShowPlaylist(tracks) {
     var html = '';
-    for (var i = 0; i < tracks.length; i++) {
-        var t = tracks[i];
+    tracks.map(function(t) {
         html += '<li><a id="track-' + t.sid + '" href="#">' + t.artist + ' - ' + t.name + '</a></li>';
-    }
+    });
     $tracks.html(html);
 
     // Bind click handlers
-    for (var i = 0; i < tracks.length; i++) {
-        var t = tracks[i];
+    tracks.map(function(t) {
         (function(sid) {
             $('#track-' + sid).click(function() {
                 changeTrack(sid);
                 return false;
             });
         })(t.sid);
-    }
+    });
 }
 
 function OnLoadedPlaylist(tracks) {
@@ -120,17 +116,14 @@ function onClickPlaylist(username, id) {
 $playlists = $('#playlists');
 function ShowPlaylists(playlists) {
     var html = '';
-    for (var i = 0; i < playlists.length; i++) {
-        var pl = playlists[i];
+    playlists.map(function(pl) {
         html += '<li><a id="playlist-' + pl.playlistId + '" href="#">' + pl.name + '</a> ' +
                 '<a id="playlist-sync-' + pl.playlistId + '" href="#">(sync)</a></li>'
-    }
+    });
     $playlists.html(html);
 
     // Bind click handlers
-    for (var i = 0; i < playlists.length; i++) {
-        var pl = playlists[i];
-
+    playlists.map(function(pl) {
         (function(username, pid) {
             $('#playlist-' + pid).click(function() {
                 onClickPlaylist(username, pid);
@@ -141,7 +134,7 @@ function ShowPlaylists(playlists) {
                 return false;
             });
         })(pl.username, pl.playlistId);
-    }
+    });
 }
 
 function changeTrack(sid) {
@@ -246,11 +239,12 @@ function syncLocally(sid, cb) {
                 cb('XHR error: ' + xhr.status + '\nResponse: ' + xhr.response);
             }
 
-            console.log('track ' + key + ' synced');
             localforage.setItem(key, xhr.response, function(err) {
                 if (err) {
                     cb(err);
+                    return;
                 }
+                console.log('track ' + key + ' synced');
             });
             SyncState[key] = true;
             cb(null);
