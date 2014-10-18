@@ -148,12 +148,7 @@ function changeTrack(sid) {
 
     var key = 'track-' + sid;
 
-    if (IsNavigatorOnline()) {
-        console.log('loading track from the server');
-        player.pause();
-        player.src = SERVER + '/track/' + sid;
-        player.play();
-    } else if (SyncState[key] === true) {
+    if (SyncState[key] === true) {
         console.log('loading track from the cache');
         localforage.getItem(key, function(err, data) {
             if (err) {
@@ -171,6 +166,11 @@ function changeTrack(sid) {
                 return;
             }
         });
+    } else if (IsNavigatorOnline()) {
+        console.log('loading track from the server');
+        player.pause();
+        player.src = SERVER + '/track/' + sid;
+        player.play();
     } else {
         alert('track ' + sid + ' not cached and no internet connection');
         return;
