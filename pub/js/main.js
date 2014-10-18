@@ -6,7 +6,7 @@ var AlanBraxe = '4ao36tgMZ2rYHF9w1i9H04';
 var Disclosure = '1snNAXmmPXCn0dkF9DaPWw';
 var Creme = '7cksT9fBZRkoaUUWs8kVUQ';
 
-var SERVER = 'http://server.example.com:1337';
+var SERVER = 'http://example.com:1337';
 
 var SyncState = {};
 var currentPlaylist = null;
@@ -17,6 +17,11 @@ function IsNavigatorOnline() {
     return navigator.onLine;
 }
 
+function ErrorLocalStorage(msg, err) {
+    alert('Local storage error ' + msg + ': ' + err);
+    return false;
+}
+
 function init() {
     changeTrack(RickRoll);
 
@@ -24,16 +29,24 @@ function init() {
         console.log('loading playlists from the server');
         $.get(SERVER + '/playlists', function(data) {
             ShowPlaylists(data.pls);
-            localforage.setItem('playlists', data.pls);
+            localforage.setItem('playlists', data.pls, function(err) {
+                if (err) {
+                    return ErrorLocalStorage('on setItem playlists', err);
+                }
+            });
             SyncState['playlists'] = true;
         });
     } else if (SyncState['playlists'] === true) {
         console.log('loading playlists from the cache');
         localforage.getItem('playlists', function (err, playlists) {
+            if (err) {
+                return ErrorLocalStorage('on getItem playlists', err);
+            }
             ShowPlaylists(playlists);
         })
     } else {
-        console.log('no internet connection and no playlists cache');
+        alert('no internet connection and no playlists cache');
+        return;
     }
 }
 
@@ -87,16 +100,24 @@ function onClickPlaylist(username, id) {
     if (IsNavigatorOnline()) {
         $.get(SERVER + '/playlists/' + username + '/' + id, function(data) {
             OnLoadedPlaylist(data.tracks);
-            localforage.setItem(key(), data.tracks);
+            localforage.setItem(key(), data.tracks, function(err) {
+                if (err) {
+                    return ErrorLocalStore('on setItem playlist<' + username + '/' + id + '>', err);
+                }
+            });
             SyncState[key()] = true;
         });
     } else if (SyncState[key()] === true) {
         console.log('loading playlist from the cache');
         localforage.getItem(key(), function(err, tracks) {
+            if (err) {
+                return ErrorLocalStore('on getItem playlist<' + username + '/' + id + '>', err);
+            }
             OnLoadedPlaylist(tracks);
         });
     } else {
-        console.log('no internet connection and no playlist cache');
+        alert('no internet connection and no playlist cache');
+        return;
     }
 }
 
@@ -141,14 +162,24 @@ function changeTrack(sid) {
     } else if (SyncState[key()] === true) {
         console.log('loading track from the cache');
         localforage.getItem(key(), function(err, data) {
-            var blob = new Blob([data]);
-            var uri = window.URL.createObjectURL(blob);
-            player.pause();
-            player.src = uri;
-            player.play();
+            if (err) {
+                return ErrorLocalStorage('on getItem track ' + sid, err);
+            }
+
+            try {
+                var blob = new Blob([data]);
+                var uri = window.URL.createObjectURL(blob);
+                player.pause();
+                player.src = uri;
+                player.play();
+            } catch (ex) {
+                alert('error when loading cached track: ' + ex);
+                return;
+            }
         });
     } else {
-        console.log('track not cached and no internet connection');
+        alert('track ' + sid + ' not cached and no internet connection');
+        return;
     }
 
     // Repeat mode
@@ -180,12 +211,20 @@ function onClickSyncPlaylist(playlistId) {
             return;
         }
         var sid = tracks.pop().sid;
-        syncLocally(sid, function() {
+        syncLocally(sid, function(err) {
+            if (err) {
+                alert('track not synced: ' + err)
+                return
+            }
             doNext(tracks);
         });
     }
 
-    localforage.getItem(key(), function(err, tracks) {
+    var k = key();
+    localforage.getItem(k, function(err, tracks) {
+        if (err) {
+            return ErrorLocalStorage('on getItem playlist ' + k, err);
+        }
         doNext(tracks);
     });
 }
@@ -196,8 +235,11 @@ function syncLocally(sid, cb) {
         return 'track-' + sid;
     }
 
-    if (SyncState[key()] === true)
+    if (SyncState[key()] === true) {
+        console.log('Playlist already synced locally')
+        cb(null);
         return;
+    }
 
     if (!player.paused) {
         alert("As a current limitation, tracks can't be synced when a track is "+
@@ -212,10 +254,19 @@ function syncLocally(sid, cb) {
     xhr.responseType = 'arraybuffer';
     xhr.addEventListener('readystatechange', function() {
         if (xhr.readyState === 4) { // readyState DONE
+            if (xhr.response === null || xhr.status !== 200) {
+                console.error('track ' + sid + ' not synced: status == ' + xhr.status);
+                cb('XHR error: ' + xhr.status + '\nResponse: ' + xhr.response)
+            }
+
             console.log('track ' + sid + ' synced');
-            localforage.setItem(key(), xhr.response);
+            localforage.setItem(key(), xhr.response, function(err) {
+                if (err) {
+                    cb(err);
+                }
+            });
             SyncState[key()] = true;
-            cb();
+            cb(null);
         }
     });
     xhr.send(null);
