@@ -142,12 +142,13 @@ function getPlaylistTracks(req, res) {
             ret.tracks = [];
             for (var i = 0; i < ret.num; i++) {
                 var t = tracks[i];
+                if (!t.isAvailable())
+                    continue;
                 ret.tracks.push({
                     duration: t.duration,
                     humanDuration: t.humanDuration,
                     name: t.name,
                     artist: t.artist.name,
-                    available: t.isAvailable(),
                     sid: t.getUrl().split(':')[2]
                 });
             }
