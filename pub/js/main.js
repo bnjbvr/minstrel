@@ -40,6 +40,9 @@ function init() {
             if (err) {
                 return ErrorLocalStorage('on getItem playlists', err);
             }
+            playlists = playlists.filter(function(pl) {
+                return SyncState['playlist-'+pl.playlistId] === true;
+            });
             ShowPlaylists(playlists);
         })
     } else {
@@ -105,6 +108,9 @@ function onClickPlaylist(username, id) {
             if (err) {
                 return ErrorLocalStore('on getItem playlist<' + username + '/' + id + '>', err);
             }
+            tracks = tracks.filter(function (t) {
+                return SyncState['track-' + t.sid] === true;
+            });
             OnLoadedPlaylist(tracks);
         });
     } else {
