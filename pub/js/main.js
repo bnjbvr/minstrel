@@ -23,8 +23,6 @@ function ErrorLocalStorage(msg, err) {
 }
 
 function init() {
-    changeTrack(RickRoll);
-
     if (IsNavigatorOnline()) {
         console.log('loading playlists from the server');
         $.get(SERVER + '/playlists', function(data) {
@@ -93,23 +91,21 @@ function OnLoadedPlaylist(tracks) {
 
 function onClickPlaylist(username, id) {
 
-    function key() {
-        return 'playlist-' + id;
-    }
+    var key = 'playlist-' + id;
 
     if (IsNavigatorOnline()) {
         $.get(SERVER + '/playlists/' + username + '/' + id, function(data) {
             OnLoadedPlaylist(data.tracks);
-            localforage.setItem(key(), data.tracks, function(err) {
+            localforage.setItem(key, data.tracks, function(err) {
                 if (err) {
                     return ErrorLocalStore('on setItem playlist<' + username + '/' + id + '>', err);
                 }
             });
-            SyncState[key()] = true;
+            SyncState[key] = true;
         });
-    } else if (SyncState[key()] === true) {
+    } else if (SyncState[key] === true) {
         console.log('loading playlist from the cache');
-        localforage.getItem(key(), function(err, tracks) {
+        localforage.getItem(key, function(err, tracks) {
             if (err) {
                 return ErrorLocalStore('on getItem playlist<' + username + '/' + id + '>', err);
             }
@@ -150,18 +146,16 @@ function ShowPlaylists(playlists) {
 
 function changeTrack(sid) {
 
-    function key() {
-        return 'track-' + sid;
-    }
+    var key = 'track-' + sid;
 
     if (IsNavigatorOnline()) {
         console.log('loading track from the server');
         player.pause();
         player.src = SERVER + '/track/' + sid;
         player.play();
-    } else if (SyncState[key()] === true) {
+    } else if (SyncState[key] === true) {
         console.log('loading track from the cache');
-        localforage.getItem(key(), function(err, data) {
+        localforage.getItem(key, function(err, data) {
             if (err) {
                 return ErrorLocalStorage('on getItem track ' + sid, err);
             }
@@ -194,14 +188,10 @@ function changeTrack(sid) {
 
 function onClickSyncPlaylist(playlistId) {
 
-    function key() {
-        return 'playlist-' + playlistId;
-    }
+    var key = 'playlist-' + playlistId;
 
-    if (SyncState[key()] !== true) {
-        console.log(key());
-        console.log(Object.keys(SyncState));
-        alert('playlist not loaded in the cache');
+    if (SyncState[key] !== true) {
+        alert('playlist ' + key + ' not loaded in the cache');
         return;
     }
 
@@ -220,10 +210,9 @@ function onClickSyncPlaylist(playlistId) {
         });
     }
 
-    var k = key();
-    localforage.getItem(k, function(err, tracks) {
+    localforage.getItem(key, function(err, tracks) {
         if (err) {
-            return ErrorLocalStorage('on getItem playlist ' + k, err);
+            return ErrorLocalStorage('on getItem playlist ' + key, err);
         }
         doNext(tracks);
     });
@@ -231,12 +220,10 @@ function onClickSyncPlaylist(playlistId) {
 
 function syncLocally(sid, cb) {
 
-    function key() {
-        return 'track-' + sid;
-    }
+    var key = 'track-' + sid;
 
-    if (SyncState[key()] === true) {
-        console.log('Playlist already synced locally')
+    if (SyncState[key] === true) {
+        console.log('Track ' + key + ' already synced locally')
         cb(null);
         return;
     }
@@ -256,16 +243,16 @@ function syncLocally(sid, cb) {
         if (xhr.readyState === 4) { // readyState DONE
             if (xhr.response === null || xhr.status !== 200) {
                 console.error('track ' + sid + ' not synced: status == ' + xhr.status);
-                cb('XHR error: ' + xhr.status + '\nResponse: ' + xhr.response)
+                cb('XHR error: ' + xhr.status + '\nResponse: ' + xhr.response);
             }
 
-            console.log('track ' + sid + ' synced');
-            localforage.setItem(key(), xhr.response, function(err) {
+            console.log('track ' + key + ' synced');
+            localforage.setItem(key, xhr.response, function(err) {
                 if (err) {
                     cb(err);
                 }
             });
-            SyncState[key()] = true;
+            SyncState[key] = true;
             cb(null);
         }
     });
